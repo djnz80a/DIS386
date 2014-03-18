@@ -1846,6 +1846,10 @@ READ.2:
 ;
 ;
 
+ERR_ALLOC:
+	MOV	EDX,EMES_ALLOC
+	JMP	ERROR
+
 ERR_OPEN:
 	MOV	EDX,MES_OPEN
 	JMP	ERROR
@@ -2889,6 +2893,9 @@ EMES_PASS1.WORK:
 
 EMES_PASS1:
 	DB	'Too many Labels !$'
+
+EMES_ALLOC:
+	DB	'Alloc failed !$'
 
 MES_CSROFF:
 	db	'$'	;DB	1BH,'x5','$'
