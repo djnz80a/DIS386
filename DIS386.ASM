@@ -4078,7 +4078,7 @@ ext_pnt:ds	4
 vram_seg:ds	4
 
 READ_BUFFER:
-
+	DS	READ_BYTES
 ;
 
 WORK:
