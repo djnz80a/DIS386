@@ -1393,6 +1393,250 @@ PUTCHR.10:
 	POP	EBX
 	RET
 
+;#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+
+INVALID_HANDLE_VALUE EQU -1
+
+;
+;3d00	open
+;	edx=filename
+;	>ax handle
+;	>cf=1 : error
+INT21_open:
+
+	PUSHAD
+	MOV	AL,'['
+	CALL	DOS02
+	MOV	ESI,EDX
+	CALL	_PUTSTR
+	MOV	AL,']'
+	CALL	DOS02
+	CALL	_PUTCRLF
+	POPAD
+
+	PUSH	0		;templateFile
+	PUSH	FILE_ATTRIBUTE_NORMAL
+	PUSH	OPEN_EXISTING	;CREATE_ALWAYS	;CREATE_NEW
+	PUSH	0		;securityAttribute
+	PUSH	0		;shareMode
+	PUSH	GENERIC_READ
+	PUSH	EDX		;FILENAME_TEST1
+	CALL	[IAT_CreateFileA]
+	CMP	EAX,INVALID_HANDLE_VALUE
+	JE	INT21_open.ERR
+
+	;MOV	[HDL_INFILE],EAX
+
+	CLC
+	RET
+INT21_open.ERR:
+	STC
+	RET
+
+;
+;3c00	create
+;	edx=filename
+;	>ax handle
+;	>cf=1 : error
+
+;
+INT21_create:
+
+	PUSHAD
+	MOV	AL,'['
+	CALL	DOS02
+	MOV	ESI,EDX
+	CALL	_PUTSTR
+	MOV	AL,']'
+	CALL	DOS02
+	CALL	_PUTCRLF
+	POPAD
+
+	PUSH	0		;templateFile
+	PUSH	FILE_ATTRIBUTE_NORMAL
+	PUSH	CREATE_ALWAYS	;CREATE_NEW
+	PUSH	0		;securityAttribute
+	PUSH	0		;shareMode
+	PUSH	GENERIC_WRITE
+	PUSH	EDX		;FILENAME_TEST1
+	CALL	[IAT_CreateFileA]
+	CMP	EAX,INVALID_HANDLE_VALUE
+	JE	INT21_create.ERR
+
+	;MOV	[HDL_OUTFILE],EAX
+
+	CLC
+	RET
+INT21_create.ERR:
+	STC
+	RET
+
+
+;#define FILE_BEGIN           0
+;#define FILE_CURRENT         1
+;#define FILE_END             2
+
+;4200	seek
+;	bx=handle
+;	cx : dx offset
+;
+;	> dx : ax current pointer
+
+INT21_seek:
+	SHL	ECX,10h
+	MOV	CX,DX
+
+	MOVZX	EAX,AL
+
+	PUSH	EAX
+	PUSH	0	;size<2GB
+	PUSH	ECX
+	PUSH	EBX
+	CALL	[IAT_SetFilePointer]
+
+	MOV	EDX,EAX
+	SHR	EDX,10H
+	MOVZX	EAX,AX
+
+	CLC
+
+;erro check?
+
+	RET
+
+INT21_getfilepointer:
+	
+
+
+;
+;3f00	read
+;	bx=handle
+;	edx=buf
+;	ecx=bytes
+;	>eax read bytes
+
+INT21_read:
+	
+	PUSH	0
+	PUSH	N_READ
+	PUSH	ECX
+	PUSH	EDX	;READ_BUF
+	PUSH	EBX	;[HDL_STDOUT]
+	CALL	[IAT_ReadFile]
+	OR	EAX,EAX
+	JE	INT21_read.ERR
+
+	MOV	EAX,[N_READ]
+	CLC
+	RET
+INT21_read.ERR:
+	XOR	EAX,EAX
+	STC
+	RET
+
+;4000	write
+;	bx=handle
+;	edx=buf
+;	ecx=bytes
+;	>eax wrote bytes
+;	cf=1 : error	
+;
+;4000	write/truncate
+;	ecx=edx=0
+;	bx=handle
+
+INT21_write:
+	XOR	EAX,EAX
+	MOV	AX,CX
+	OR	AX,DX
+	JE	INT21_truncate
+
+	PUSH	0
+	PUSH	N_WROTE
+	PUSH	ECX
+	PUSH	EDX	;READ_BUF
+	PUSH	EBX	;[HDL_STDOUT]
+	CALL	[IAT_WriteFile]
+	OR	EAX,EAX
+	JE	INT21_write.ERR
+
+	MOV	EAX,[N_WROTE]
+
+	CLC
+	RET
+
+INT21_write.ERR:
+	XOR	EAX,EAX
+	STC
+	RET
+
+
+INT21_truncate:
+	PUSH	EBX
+	CALL	[IAT_SetEndOfFile]
+	RET
+
+
+;3e00	close
+;	bx=handle
+;	cf=1 : error
+INT21_close:
+
+	PUSH	EBX
+	CALL	[IAT_CloseHandle]
+	OR	EAX,EAX
+	JE	INT21_close.ERR
+
+	CLC
+	RET
+
+INT21_close.ERR:
+	STC
+	RET
+
+
+;4c	exit
+;	al=code
+
+INT21_exit:
+	MOVZX	EAX,AL
+	PUSH	EAX
+	CALL	[IAT_ExitProcess]
+
+	RET
+
+INT21_putchr:
+	CALL	_PUTCHR
+	RET
+
+
+DOS09:
+;	PUSH	EAX
+;	MOV	AH,09H
+;	INT	21H
+;	POP	EAX
+
+	PUSHAD
+DOS09.1:
+	MOV	AL,[EDX]
+	CMP	AL,'$'
+	JE	DOS09.R
+	PUSH	EDX
+	CALL	_PUTCHR	;DOS02
+	POP	EDX
+	INC	EDX
+	JMP	DOS09.1
+
+DOS09.R:
+	POPAD
+	RET
+
+;	line input
+
+DOS0A:
+	RET
+
+
 ;
 ;
 ;
@@ -1406,7 +1650,7 @@ DOS02:
 	PUSHAD
 	MOV	AH,2
 	MOV	DL,AL
-	INT	21H
+	CALL	_PUTCHR	;INT	21H
 	POPAD
 DOS02.NOTOUT:
 	RET
@@ -1432,6 +1676,8 @@ DOS02.NOTMON:
 	POP	EDI
 	POP	ESI
 	RET
+
+
 ;
 ;
 ;
@@ -1504,10 +1750,10 @@ WRITE:	MOV	EBX,PASS
 	RET
 WRITE.1:
 	mov	ax,4000h	;write
-	mov	bx,[hdl2]
+	mov	ebx,[hdl2]
 	mov	Ecx,write_bytes
 	mov	Edx,w_work
-	int	21h
+	CALL	INT21_write	;int	21h
 	jb	err_write
 	cmp	Eax,write_bytes
 	jne	err_write
@@ -1532,17 +1778,17 @@ WRITE.20:
 	MOV	[FILE_SIZE_CNT],EBX
 
 	mov	ax,3e00h	;close
-	mov	bx,[hdl2]
-	int	21h
+	mov	ebx,[hdl2]
+	CALL	INT21_close	;int	21h
 
 	CALL	INC_NAME
 
 	mov	ax,3c00h	;create
 	mov	Ecx,0
 	mov	Edx,file2
-	int	21h
+	CALL	INT21_create	;int	21h
 	jb	err_make
-	mov	[hdl2],ax
+	mov	[hdl2],eax
 
 	MOV	EBX,W_WORK
 	MOV	[W_PNT],EBX
@@ -1553,8 +1799,8 @@ WRITE.20:
 
 ERR_WRITE:
 	mov	ax,3e00h	;close
-	mov	bx,[hdl2]
-	int	21h
+	mov	ebx,[hdl2]
+	CALL	INT21_close	;int	21h
 	MOV	EDX,EMES_WRITE
 	JMP	ERROR
 
@@ -1585,7 +1831,7 @@ READ.1:	MOV	AL,[R_FLG]
 	mov	bx,[hdl1]
 	mov	Ecx,read_bytes
 	mov	Edx,read_buffer
-	int	21h
+	CALL	INT21_read	;int	21h
 	mov	Eax,Ebx
 
 	MOV	[R_LEFT],EBX
@@ -1612,10 +1858,11 @@ ERROR:
 ;	MOV	CL,09H
 ;	CALL	0005H
 	mov	ah,09h
-	int	21h
+	CALL	DOS09	;int	21h
 ;	JMP	0000H
+
 	mov	ax,4c01h
-	int	21h
+	CALL	INT21_exit	;int	21h
 
 MES_OPEN:
 	DB	'File open error!$'
@@ -2532,7 +2779,6 @@ strcat:	lodsb
 __ret:	ret
 
 
-CLINE:	DS	100H
 
 
 ;
@@ -2540,6 +2786,8 @@ CLINE:	DS	100H
 ;
 
 GETCLINE:
+	JMP	GETCLINE_win
+
 	PUSH	DS
 	MOV	AX,DS
 	MOV	ES,AX
@@ -2554,6 +2802,64 @@ GETCLINE:
 	REP
 	MOVSB
 	POP	DS
+
+	MOV	ESI,CLINE
+	MOV	EDI,ESI
+	CLD
+	LODSB
+	XOR	ECX,ECX
+	MOV	CL,AL
+	INC	EDI
+	ADD	EDI,ECX
+
+	XOR	EAX,EAX
+	STOSB
+	RET
+
+GETCLINE_win:
+	PUSH	DS
+	MOV	AX,DS
+	MOV	ES,AX
+
+	;MOV	AX,4
+	;MOV	DS,AX
+
+	MOV	ESI,[CMDLINE]
+GETCLINE_win.10:
+	MOV	AL,[ESI]
+	OR	AL,AL
+	JE	GETCLINE_win.20
+	CMP	AL,' '
+	JBE	GETCLINE_win.20
+	INC	ESI
+	JMP	GETCLINE_win.10
+
+GETCLINE_win.20:
+
+;	;MOV	ESI,0080H
+;	MOV	EDI,CLINE
+;	MOV	ECX,80H
+;	CLD
+;	REP
+;	MOVSB
+
+	MOV	EDI,CLINE
+GETCLINE_win.30:
+	MOV	AL,[ESI]
+	CMP	AL,20h
+	JB	GETCLINE_win.40
+	MOV	[EDI],AL
+	INC	ESI
+	INC	EDI
+	OR	AL,AL
+	JMP	GETCLINE_win.30
+
+GETCLINE_win.40:
+	MOV	AL,0
+	MOV	[EDI],AL
+	POP	DS
+
+	RET
 
 	MOV	ESI,CLINE
 	MOV	EDI,ESI
