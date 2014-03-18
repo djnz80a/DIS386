@@ -1828,7 +1828,7 @@ READ.1:	MOV	AL,[R_FLG]
 	JNE	READ.2
 
 	mov	ax,3f00h	;read
-	mov	bx,[hdl1]
+	mov	ebx,[hdl1]
 	mov	Ecx,read_bytes
 	mov	Edx,read_buffer
 	CALL	INT21_read	;int	21h
