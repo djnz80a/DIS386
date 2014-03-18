@@ -918,7 +918,7 @@ CON_PUTCHR:
 ;	CALL	0005H
 	mov	ah,02h
 	mov	dl,al
-	int	21h
+	CALL	_PUTCHR	;int	21h
 
 	POP	EAX
 	POP	ECX
@@ -2276,7 +2276,7 @@ GETHEX.15:
 ;
 
 VPOKE:
-;	ret
+		ret
 
 	push	es
 
@@ -2310,7 +2310,8 @@ VPOKE:
 ;
 
 VPEEK:
-;	ret
+		MOV	AL,0
+		ret
 
 	push	es
 	mov	ax,[vram_seg]
@@ -2665,7 +2666,7 @@ SET_LABEL:
 	RET
 
 FILL:
-;	ret
+		ret
 
 	push	es
 	mov	ax,[vram_seg]
