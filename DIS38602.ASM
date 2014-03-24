@@ -1,5 +1,23 @@
 
 ;
+
+INIT_MEMORY:
+	;MOV	EAX,[FILE1_SIZE]
+	MOV	EAX,10000H
+	PUSH	EAX
+	CALL	__ALLOC
+	POP	ECX
+	MOV	[LABEL_MEMORY],EAX
+	ADD	EAX,ECX
+	MOV	[LABEL_MEMORY_END],EAX
+	RET
+
+;
+
+DEINIT_MEMORY:
+	RET
+
+;
 ;	BH &1==0 BYTE/==1 (D)WORD
 ;
 
@@ -876,6 +894,29 @@ MAIN_N.40:
 	JMP	MAIN
 
 MAIN_END:
+	RET
+
+;
+;
+;
+CON_PUTHEX4:
+	PUSH	EAX
+	SHR	EAX,10H
+	CALL	CON_PUTHEX2
+	POP	EAX
+	CALL	CON_PUTHEX2
+	RET
+
+;
+;
+;
+
+CON_PUTHEX2:
+	PUSH	EAX
+	SHR	EAX,8
+	CALL	CON_PUTHEX
+	POP	EAX
+	CALL	CON_PUTHEX
 	RET
 
 ;
@@ -2280,22 +2321,25 @@ GETHEX.15:
 ;
 
 VPOKE:
-		ret
+	;	ret
 
-	push	es
+	;push	es
 
-	push	Eax
-	mov	ax,[vram_seg]
-	mov	es,ax
-	pop	Eax
+	;push	Eax
+	;mov	ax,[vram_seg]
+	;mov	es,ax
+	;pop	Eax
 
 	PUSH	EBX
 	AND	EBX,0FFFFH
-	db	26h
-	mov	[Ebx],al
+	;db	26h
+	;mov	[Ebx],al
+
+	ADD	EBX,[LABEL_MEMORY]
+	MOV	[EBX],AL
 	POP	EBX
 
-	pop	es
+	;pop	es
 	ret
 
 	PUSH	CX
@@ -2314,18 +2358,23 @@ VPOKE:
 ;
 
 VPEEK:
-		MOV	AL,0
-		ret
+	;	MOV	AL,0
+	;	ret
 
-	push	es
-	mov	ax,[vram_seg]
-	mov	es,ax
+	;push	es
+	;mov	ax,[vram_seg]
+	;mov	es,ax
+
 	PUSH	EBX
 	AND	EBX,0FFFFH
-	db	26h
-	mov	al,[Ebx]
+	;db	26h
+	;mov	al,[Ebx]
+
+	ADD	EBX,[LABEL_MEMORY]
+	MOV	AL,[EBX]
 	POP	EBX
-	pop	es
+
+	;pop	es
 	ret
 
 	PUSH	CX
@@ -2670,11 +2719,23 @@ SET_LABEL:
 	RET
 
 FILL:
+	MOV	EDI,[LABEL_MEMORY]
+	MOV	EDX,[LABEL_MEMORY_END]
+
+	MOV	ECX,EDX
+	SUB	ECX,EDI
+	MOV	AL,0FFH
+
+	CLD
+	REP
+	STOSB
+	RET
+
 		ret
 
 	push	es
-	mov	ax,[vram_seg]
-	mov	es,ax
+	;mov	ax,[vram_seg]
+	;mov	es,ax
 
 	MOV	ECX,10000H
 	mov	Edi,VRAM_ADRS
