@@ -287,8 +287,9 @@ DIS386_MAIN:
 ;	mov	bx,1000h
 ;	int	21h
 ;	jb	err_alloc
-		MOV	AX,104H
-	mov	[vram_seg],ax
+
+	;	MOV	AX,104H
+	;mov	[vram_seg],ax
 
 	jmp	alloc.e
 
@@ -3822,7 +3823,7 @@ hdl1:	ds	4
 hdl2:	ds	4
 
 ext_pnt:ds	4
-vram_seg:ds	4
+;vram_seg:ds	4
 
 LABEL_MEMORY:	DS	4
 LABEL_MEMORY_END:	DS	4
