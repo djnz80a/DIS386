@@ -2716,6 +2716,6 @@ EMES_PASS1:
 EMES_ALLOC:
 	DB	'Alloc failed !$'
 
-MES_CSROFF:
-	db	'$'	;DB	1BH,'x5','$'
+;MES_CSROFF:
+;	db	'$'	;DB	1BH,'x5','$'
 
