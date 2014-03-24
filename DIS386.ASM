@@ -617,9 +617,9 @@ A386_MAIN:
 
 	jmp	alloc.e
 
-err_alloc:
-	mov	ah,4ch
-	CALL	INT21_exit	;int	21h
+;err_alloc:
+;	mov	ah,4ch
+;	CALL	INT21_exit	;int	21h
 
 alloc.e:
 ;	mov	ax,cs
